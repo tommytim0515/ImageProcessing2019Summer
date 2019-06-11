@@ -23,7 +23,7 @@ namespace TrackProcessing {
 		if (std::isnan(direction.first) || std::isnan(direction.second)) std::cout << "NaN direction";
 		float curY = start.first;
 		float curX = start.second;
-	    while ( ! Image::isEdge(CAM_BUFFER, curY + direction.first, curX + direction.second)) makeSmallDot(bmp, curX, curY), curY += direction.first, curX += direction.second; 
+	    while ( ! Image::isEdge(CAM_BUFFER, curY + direction.first, curX + direction.second)) /*makeSmallDot(bmp, curX, curY),*/ curY += direction.first, curX += direction.second; 
 	    return mp((int)curY, (int)curX);
 	}
 	ii goUntilObstacle(ii start, ii direction, GrayBMP &bmp) {
@@ -43,7 +43,7 @@ namespace TrackProcessing {
 		return vec / mag;
 	}
 	ff getCoords(ii yx) {
-	    return mp(remapping[yx.first][yx.second][0], remapping[yx.first][yx.second][1]) / 10.0f + mp(3.0f, 0.0f); // 3 cm y-forward constant offset
+	    return mp(remapping[yx.second][yx.first][1], remapping[yx.second][yx.first][0]);// / 10.0f + mp(3.0f, 0.0f); // 3 cm y-forward constant offset
 	}
 	Corner getCornerType(ii a, ii b, ii c) {
 	    ff fa = getCoords(a); fa.first *= -1;
@@ -96,10 +96,11 @@ namespace TrackProcessing {
 					if (isActuallyCorner(c)) {
 						int CoorX = ret[ret.size()-1-CORNER_INTERVAL].second;
 						int CoorY = ret[ret.size()-1-CORNER_INTERVAL].first;
-						if (CoorX >= 3 && CoorY >= 3 && CoorX < (IMAGE_WIDTH - 3) && CoorY < (IMAGE_HEIGHT - 3)) 
+						if (CoorX >= 10 && CoorY >= 10 && CoorX < (IMAGE_WIDTH - 10) && CoorY < (IMAGE_HEIGHT - 10)) {
 							makeBigDot(bmp, CoorX, CoorY);
+							return mp(std::move(ret), c);
+						}
 					}
-					return mp(std::move(ret), c);
 				}
 			}
 		
@@ -137,9 +138,11 @@ namespace TrackProcessing {
 					if (isActuallyCorner(c)) {
 						int CoorX = ret[ret.size()-1-CORNER_INTERVAL].second;
 						int CoorY = ret[ret.size()-1-CORNER_INTERVAL].first;
-						if (CoorX >= 3 && CoorY >= 3 && CoorX < (IMAGE_WIDTH - 3) && CoorY < (IMAGE_HEIGHT - 3)) 
+						if (CoorX >= 10 && CoorY >= 10 && CoorX < (IMAGE_WIDTH - 10) && CoorY < (IMAGE_HEIGHT - 10)) {
 							makeBigDot(bmp, CoorX, CoorY);
-					}return mp(std::move(ret), c);
+							return mp(std::move(ret), c);
+						}
+					}
 				}
 			}
 		

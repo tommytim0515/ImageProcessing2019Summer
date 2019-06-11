@@ -10,15 +10,20 @@
 #include "declaration.h"
 #include "imageProc.h"
 #include "track_processing.h"
+#include "pathPlanning.h"
 
-//using namespace std;
+using namespace std;
+
+bool loopMode = false;
+double direction = 0;
+
 
 int main(){
 	ii checkPoint(IMAGE_HEIGHT - 2, IMAGE_WIDTH / 2);
 	ii checkPoint1(IMAGE_HEIGHT - 2, IMAGE_WIDTH / 2);
 	ii checkPoint2(3*IMAGE_HEIGHT / 5, IMAGE_WIDTH / 2);
 	ii checkPoint3(IMAGE_HEIGHT / 2, IMAGE_WIDTH / 2);
-	ff direction1(-0.4, 1.5);
+	ff direction1(-0.5, 1.4);
 	ff direction2(-0.1, 1);
 	ff direction3(-0.3, 1.4);
 	ii searchDirR(-2, 1);
@@ -26,15 +31,11 @@ int main(){
 	direction1 = TrackProcessing::normalizeVector(direction1);
 	direction2 = TrackProcessing::normalizeVector(direction2);
 	direction3 = TrackProcessing::normalizeVector(direction3);
-	for (int i = 5; i < 220; ++i) {
+	for (int i = 6; i < 39; ++i) {
 		std::cout << to_string(i) << std::endl;
 		string name("raw/img" + to_string(i) + ".bmp");
 		GrayBMP input(name);
-		//medianfilter(input, 2);
 		Threshold(input);
-		//sobel(input);
-		//medianfilter(input, 2);
-		//Threshold(input);
 		uint8_t img_arr[IMAGE_WIDTH * IMAGE_HEIGHT];
 		bmp_to_arr(input, img_arr);
 		CAM_BUFFER = img_arr;
@@ -47,22 +48,47 @@ int main(){
 		ii resultR3 = TrackProcessing::goUntilObstacle(checkPoint3, direction3, input);
 		ff subDirection3(direction3.first, -direction3.second);
 		ii resultL3 = TrackProcessing::goUntilObstacle(checkPoint3, subDirection3, input);
-		// std::cout << resultL3.second << " " << resultL3.first << std::endl;
-		// std::cout << resultR3.second << " " << resultR3.first << std::endl;
-		// std::cout << resultL2.second << " " << resultL2.first << std::endl;
-		// std::cout << resultR2.second << " " << resultR2.first << std::endl;
-		// std::cout << resultL1.second << " " << resultL1.first << std::endl;
-		// std::cout << resultR1.second << " " << resultR1.first << std::endl;
 		ff resultR1f = TrackProcessing::getCoords(resultR1);
 		ff resultL1f = TrackProcessing::getCoords(resultL1);
 		ff resultR2f = TrackProcessing::getCoords(resultR2);
 		ff resultL2f = TrackProcessing::getCoords(resultL2);
 		ff resultR3f = TrackProcessing::getCoords(resultR3);
 		ff resultL3f = TrackProcessing::getCoords(resultL3);
-		TrackProcessing::goUntilCorner_LE(input, resultL1,searchDirL, 100);
-		TrackProcessing::goUntilCorner_RE(input, resultR1,searchDirR, 100);
-		TrackProcessing::goUntilCorner_LE(input, resultL3,searchDirL, 100);
-		TrackProcessing::goUntilCorner_RE(input, resultR3,searchDirR, 100);
+		makeSmallDot(input, resultL1.second, resultL1.first);
+		makeSmallDot(input, resultL2.second, resultL2.first);
+		makeSmallDot(input, resultL3.second, resultL3.first);
+		makeSmallDot(input, resultR1.second, resultR1.first);
+		makeSmallDot(input, resultR2.second, resultR2.first);
+		makeSmallDot(input, resultR3.second, resultR3.first);
+		TrackProcessing::viic leftCornerDetect = TrackProcessing::goUntilCorner_LE(input, resultL1,searchDirL, 100);
+		TrackProcessing::viic rightCornerDetect = TrackProcessing::goUntilCorner_RE(input, resultR1,searchDirR, 100);
+		ii leftCorner(0, 0);
+		ii rightCorner(0, 0);
+		if (TrackProcessing::isActuallyCorner(leftCornerDetect.second)) {
+			leftCorner.first = leftCornerDetect.first[leftCornerDetect.first.size()-1-TrackProcessing::CORNER_INTERVAL].first;
+			leftCorner.second = leftCornerDetect.first[leftCornerDetect.first.size()-1-TrackProcessing::CORNER_INTERVAL].second;
+		}
+		if (TrackProcessing::isActuallyCorner(rightCornerDetect.second)) {
+			rightCorner.first = rightCornerDetect.first[rightCornerDetect.first.size()-1-TrackProcessing::CORNER_INTERVAL].first;
+			rightCorner.second = rightCornerDetect.first[rightCornerDetect.first.size()-1-TrackProcessing::CORNER_INTERVAL].second;
+		}
+
+		ff leftVector1 = getDirectionVector(resultL3, resultL2);
+		ff leftVector2 = getDirectionVector(resultL2, resultL1);
+		ff rightVector1 = getDirectionVector(resultR3, resultR2);
+		ff rightVector2 = getDirectionVector(resultR2, resultR1);
+		// cout << resultL3 << " " << resultR3 << endl
+		// 	<< resultL2 << " " << resultR2 << endl
+		// 	<< resultL1 << " " << resultR1 << endl << endl;
+		// cout << resultL3f << " " << resultR3f << endl
+		// 	<< resultL2f << " " << resultR2f << endl
+		// 	<< resultL1f << " " << resultR1f << endl << endl;
+		cout << leftVector1 << " " << leftVector2 << endl
+			<< rightVector1 << " " << rightVector2 << endl;
+		ff leftEdgeVector = checkEdge(resultL1, resultL2, resultL3, leftCorner);
+		//ff rightEdgeVector = checkEdge(resultR1, resultR2, resultR3, rightCorner);
+		rightLoopCheck(leftEdgeVector, rightVector1, rightVector2);
+		
 		GrayBMP pers(PERS_X, PERS_Y);
 		bmp_to_arr(input, img_arr);
 		perspectiveBMP(pers, img_arr);
@@ -72,15 +98,6 @@ int main(){
 				pers.img[i*PERS_X + j] = img_arr[i*IMAGE_WIDTH + j];
 			}
 		}
-		// for (int i = 0; i < IMAGE_WIDTH; ++i) {
-		// 	for (int j = 0; j < IMAGE_HEIGHT; ++j) {
-		// 		if (!std::isnan(remapping[i][j][0])) {
-		// 			pers.img[remapping[i][j][0] * PERS_X +  remapping[i][j][1]] = input.img[i * IMAGE_WIDTH + j];
-		// 		}
-		// 	}
-		// }
-		//sobel(input);
-		//CornerDetect1(input, 0.6);
 		pers.save(string("out/out" + to_string(i) + ".bmp"));
 		//std::cout << "Done" << std::endl;
 	}
