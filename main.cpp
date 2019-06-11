@@ -14,8 +14,11 @@
 
 using namespace std;
 
-bool loopMode = false;
-double direction = 0;
+bool leftLoopMode = false;
+bool rightLoopMode = false;
+bool leftCornerExist = false;
+bool rightCornerExist = false;
+double turnDirection = 0;
 
 
 int main(){
@@ -31,8 +34,12 @@ int main(){
 	direction1 = TrackProcessing::normalizeVector(direction1);
 	direction2 = TrackProcessing::normalizeVector(direction2);
 	direction3 = TrackProcessing::normalizeVector(direction3);
-	for (int i = 6; i < 39; ++i) {
-		std::cout << to_string(i) << std::endl;
+	for (int i = 6; i < 220; ++i) {
+		if (i == 58)
+		leftLoopMode = rightLoopMode = false;
+		if (i >= 112 && i <= 125)
+			continue;
+		std::cout << "No. " << to_string(i) << std::endl;
 		string name("raw/img" + to_string(i) + ".bmp");
 		GrayBMP input(name);
 		Threshold(input);
@@ -67,12 +74,13 @@ int main(){
 		if (TrackProcessing::isActuallyCorner(leftCornerDetect.second)) {
 			leftCorner.first = leftCornerDetect.first[leftCornerDetect.first.size()-1-TrackProcessing::CORNER_INTERVAL].first;
 			leftCorner.second = leftCornerDetect.first[leftCornerDetect.first.size()-1-TrackProcessing::CORNER_INTERVAL].second;
+			leftCornerExist = true;
 		}
 		if (TrackProcessing::isActuallyCorner(rightCornerDetect.second)) {
 			rightCorner.first = rightCornerDetect.first[rightCornerDetect.first.size()-1-TrackProcessing::CORNER_INTERVAL].first;
 			rightCorner.second = rightCornerDetect.first[rightCornerDetect.first.size()-1-TrackProcessing::CORNER_INTERVAL].second;
+			rightCornerExist = true;
 		}
-
 		ff leftVector1 = getDirectionVector(resultL3, resultL2);
 		ff leftVector2 = getDirectionVector(resultL2, resultL1);
 		ff rightVector1 = getDirectionVector(resultR3, resultR2);
@@ -83,12 +91,58 @@ int main(){
 		// cout << resultL3f << " " << resultR3f << endl
 		// 	<< resultL2f << " " << resultR2f << endl
 		// 	<< resultL1f << " " << resultR1f << endl << endl;
-		cout << leftVector1 << " " << leftVector2 << endl
-			<< rightVector1 << " " << rightVector2 << endl;
-		ff leftEdgeVector = checkEdge(resultL1, resultL2, resultL3, leftCorner);
-		//ff rightEdgeVector = checkEdge(resultR1, resultR2, resultR3, rightCorner);
-		rightLoopCheck(leftEdgeVector, rightVector1, rightVector2);
+		// cout << leftVector1 << " " << leftVector2 << endl
+		// 	<< rightVector1 << " " << rightVector2 << endl;
+		ff turn(0,0);
+		ff leftEdgeVector = checkEdge(resultL3, resultL2, resultL1, leftCorner);
+		ff rightEdgeVector = checkEdge(resultR3, resultR2, resultR1, rightCorner);
+		if(leftLoopCheck(rightEdgeVector, leftVector1, leftVector2)) turnDirection  = -50, leftLoopMode = true;
+		if(rightLoopCheck(leftEdgeVector, rightVector1, rightVector2)) turnDirection = -50, leftLoopMode = true;
+		if (!leftLoopMode && !rightLoopMode) {
+			if (!isnan(leftEdgeVector.first) && !isnan(rightEdgeVector.first)) {
+				turn.first = TrackProcessing::normalizeVector(leftEdgeVector + rightEdgeVector).first;
+				turn.second = TrackProcessing::normalizeVector(leftEdgeVector + rightEdgeVector).second;
+				turn.first = -turn.first;
+				turn.second = -turn.second;
+				turnDirection = 100*turn.second / sqrt(turn.first*turn.first + turn.second*turn.second);
+			} else if (!isnan(leftEdgeVector.first) && isnan(rightEdgeVector.first)) {
+				turn.first = TrackProcessing::normalizeVector(leftEdgeVector).first;
+				turn.second = TrackProcessing::normalizeVector(leftEdgeVector).second;
+				turn.first = -turn.first;
+				turn.second = -turn.second;
+				turnDirection = 100*turn.second / sqrt(turn.first*turn.first + turn.second*turn.second);
+			} else if (isnan(leftEdgeVector.first) && !isnan(rightEdgeVector.first)) {
+				turn.first = TrackProcessing::normalizeVector(rightEdgeVector).first;
+				turn.second = TrackProcessing::normalizeVector(rightEdgeVector).second;
+				turn.first = -turn.first;
+				turn.second = -turn.second;
+				turnDirection = 100*turn.second / sqrt(turn.first*turn.first + turn.second*turn.second);
+			} else 
+				turnDirection = 0;
+		} else if (!leftLoopMode && rightLoopMode) {
+			if (isnan(leftEdgeVector.first) && isnan(rightEdgeVector.first)) {
+				turnDirection = 60;
+			} else if (!isnan(rightEdgeVector.first)) {
+				turn.first = TrackProcessing::normalizeVector(rightEdgeVector).first;
+				turn.second = TrackProcessing::normalizeVector(rightEdgeVector).second;
+				turn.first = -turn.first;
+				turn.second = -turn.second;
+				turnDirection = 100*turn.second / sqrt(turn.first*turn.first + turn.second*turn.second);
+			} else if (!isnan(leftEdgeVector.first) && isnan(rightEdgeVector.first)) {
+				turn.first = TrackProcessing::normalizeVector(rightEdgeVector).first;
+				turn.second = TrackProcessing::normalizeVector(rightEdgeVector).second;
+				turn.first = -turn.first;
+				turn.second = -turn.second;
+				turnDirection = 100*turn.second / sqrt(turn.first*turn.first + turn.second*turn.second);
+				if (turnDirection > -50)
+				turnDirection = -50;
+			}
+		}
 		
+		//cout << leftEdgeVector << "|" << rightEdgeVector << endl;
+		// if(leftLoopCheck(rightEdgeVector, leftVector1, leftVector2)) turnDirection  = -50;
+		// if(rightLoopCheck(leftEdgeVector, rightVector1, rightVector2)) turnDirection = 50;
+		cout << turnDirection << endl;
 		GrayBMP pers(PERS_X, PERS_Y);
 		bmp_to_arr(input, img_arr);
 		perspectiveBMP(pers, img_arr);
@@ -99,6 +153,7 @@ int main(){
 			}
 		}
 		pers.save(string("out/out" + to_string(i) + ".bmp"));
+		leftCornerExist = rightCornerExist = false;
 		//std::cout << "Done" << std::endl;
 	}
 

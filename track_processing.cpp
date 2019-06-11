@@ -9,6 +9,7 @@
 #include "declaration.h"
 #include "imageProc.h"
 #include "GrayBMP.h"
+#include "pathPlanning.h"
 
 const uint8_t *CAM_BUFFER = nullptr;
 
@@ -85,6 +86,8 @@ namespace TrackProcessing {
 	viic goUntilCorner_LE(GrayBMP &bmp, ii current, ii direction, int limit) {
 		vii ret;
 		while (current.first > HEIGHT_LIMIT && limit--) {
+			if (!coorValid(current))
+				break;
 			//makeDot(bmp, current.first, current.second);
 			ret.push_back(current);
 	
@@ -97,7 +100,7 @@ namespace TrackProcessing {
 						int CoorX = ret[ret.size()-1-CORNER_INTERVAL].second;
 						int CoorY = ret[ret.size()-1-CORNER_INTERVAL].first;
 						if (CoorX >= 10 && CoorY >= 10 && CoorX < (IMAGE_WIDTH - 10) && CoorY < (IMAGE_HEIGHT - 10)) {
-							makeBigDot(bmp, CoorX, CoorY);
+							//makeBigDot(bmp, CoorX, CoorY);
 							return mp(std::move(ret), c);
 						}
 					}
@@ -128,6 +131,8 @@ namespace TrackProcessing {
 	viic goUntilCorner_RE(GrayBMP &bmp, ii current, ii direction, int limit) {
 		vii ret;
 		while (current.first > HEIGHT_LIMIT && limit--) {
+			if (!coorValid(current))
+				break;
 			//makeDot(bmp, current.first, current.second);
 			ret.push_back(current);
 		
@@ -139,7 +144,7 @@ namespace TrackProcessing {
 						int CoorX = ret[ret.size()-1-CORNER_INTERVAL].second;
 						int CoorY = ret[ret.size()-1-CORNER_INTERVAL].first;
 						if (CoorX >= 10 && CoorY >= 10 && CoorX < (IMAGE_WIDTH - 10) && CoorY < (IMAGE_HEIGHT - 10)) {
-							makeBigDot(bmp, CoorX, CoorY);
+							//makeBigDot(bmp, CoorX, CoorY);
 							return mp(std::move(ret), c);
 						}
 					}

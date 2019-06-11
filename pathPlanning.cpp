@@ -55,8 +55,7 @@ ff checkEdge(ii coor1, ii coor2, ii coor3, ii point) {
             return result;
         } else if (!isnan(vector1.first) &&  !isnan(vector2.first)) {
             ff result(vector1.first*vectoerPercentage + vector2.first*vectoerPercentage, vector1.second*vectoerPercentage + vector2.second*vectoerPercentage);
-            TrackProcessing::normalizeVector(result);
-            return result;
+            return TrackProcessing::normalizeVector(result);
         }
     } else {
         ff cornerPoint = TrackProcessing::getCoords(point);
@@ -66,17 +65,27 @@ ff checkEdge(ii coor1, ii coor2, ii coor3, ii point) {
 }
 
 bool leftLoopCheck(ff sideVector, ff vector1, ff vector2) {
-
+    if (!isnan(sideVector.first) && !isnan(vector1.first) && !isnan(vector2.first)) {
+        double vectorAngle = (vector1.first*vector2.first + vector1.second*vector2.second) / (sqrt(vector1.first*vector1.first + vector1.second*vector1.second)*sqrt(vector2.first*vector2.first + vector2.second*vector2.second));
+        //std::cout << vectorAngle << std::endl;
+        double sideAngle = (sideVector.first*vector2.first + sideVector.second*vector2.second) / (sqrt(sideVector.first*sideVector.first + sideVector.second*sideVector.second)*sqrt(vector2.first*vector2.first + vector2.second*vector2.second));
+        //std::cout << sideAngle << std::endl;
+        if (/*vector1.second > 0 && vector2.second < 0 && */  vectorAngle > 0 && sideAngle > 0 && vectorAngle < vectorAngleLimit && sideAngle < sideAngleLimit) {
+            std::cout << "Left Loop" << std::endl;
+            return true;
+        }
+    }
+    return false;
 }
 
 bool rightLoopCheck(ff sideVector, ff vector1, ff vector2) {
-    std::cout << "start" << endl;
+    //std::cout << "start" << endl;
     if (!isnan(sideVector.first) && !isnan(vector1.first) && !isnan(vector2.first)) {
         double vectorAngle = (vector1.first*vector2.first + vector1.second*vector2.second) / (sqrt(vector1.first*vector1.first + vector1.second*vector1.second)*sqrt(vector2.first*vector2.first + vector2.second*vector2.second));
-        std::cout << vectorAngle << std::endl;
+        //std::cout << vectorAngle << std::endl;
         double sideAngle = (sideVector.first*vector2.first + sideVector.second*vector2.second) / (sqrt(sideVector.first*sideVector.first + sideVector.second*sideVector.second)*sqrt(vector2.first*vector2.first + vector2.second*vector2.second));
-        std::cout << sideAngle << std::endl;
-        if (/*vector1.second > 0 &&*/ vector2.second < 0 && sideAngle > 0 && vectorAngle < vectorAngleLimit && sideAngle < sideAngleLimit) {
+        //std::cout << sideAngle << std::endl;
+        if (/*vector1.second > 0 && vector2.second < 0 && */  vectorAngle > 0 && sideAngle > 0 && vectorAngle < vectorAngleLimit && sideAngle < sideAngleLimit) {
             std::cout << "Right Loop" << std::endl;
             return true;
         }

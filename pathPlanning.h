@@ -13,8 +13,8 @@ const int VALID_LEFTMOST = 5;
 const int VALID_RIGHTMOST = 371;
 
 const double vectoerPercentage = 0.3;
-const double vectorAngleLimit = 0.998;
-const double sideAngleLimit = 0.5;
+const double vectorAngleLimit = 0.97;
+const double sideAngleLimit = 0.80;
 
 typedef enum patterns {
     bothSide,
